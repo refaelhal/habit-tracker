@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Habit Tracker</title>
+    <title>Minimalist Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -44,13 +44,13 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        .habit-card {
+        .item-card {
             background-color: var(--card-bg);
             border: 1px solid var(--border);
             transition: all 0.2s ease;
         }
 
-        #progress-bar {
+        .progress-bar-fill {
             background-color: var(--progress-fill);
         }
 
@@ -71,24 +71,51 @@
             color: var(--text-secondary);
             opacity: 0.5;
         }
+
+        .nav-item.active {
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        .nav-item {
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.5);
+        }
     </style>
 </head>
 <body class="fixed inset-0 select-none">
     <div id="app" class="h-full w-full max-w-md mx-auto flex flex-col pt-10 px-6">
-        <header class="flex justify-between items-center mb-10 shrink-0">
-            <div class="flex-1">
+        <!-- Header -->
+        <header id="main-header" class="flex justify-between items-center mb-10 shrink-0">
+            <!-- Habit Progress Bar -->
+            <div class="flex-1" id="header-habits">
                 <div class="flex items-center gap-3">
                     <div class="flex-1 h-2 progress-track-bg rounded-full overflow-hidden border border-black/5 dark:border-white/5">
-                        <div id="progress-bar" class="h-full transition-all duration-700 ease-out" style="width: 0%"></div>
+                        <div id="habit-progress-bar" class="progress-bar-fill h-full transition-all duration-700 ease-out" style="width: 0%"></div>
                     </div>
-                    <span id="progress-text" class="text-[10px] font-bold tracking-[0.2em] text-[var(--text-primary)] uppercase whitespace-nowrap">0%</span>
+                    <span id="habit-progress-text" class="text-[10px] font-bold tracking-[0.2em] text-[var(--text-primary)] uppercase whitespace-nowrap">0%</span>
                 </div>
             </div>
+
+            <!-- Todo Progress Bar (New) -->
+            <div class="flex-1 hidden" id="header-todos">
+                <div class="flex items-center gap-3">
+                    <div class="flex-1 h-2 progress-track-bg rounded-full overflow-hidden border border-black/5 dark:border-white/5">
+                        <div id="todo-progress-bar" class="progress-bar-fill h-full transition-all duration-700 ease-out" style="width: 0%"></div>
+                    </div>
+                    <span id="todo-progress-text" class="text-[10px] font-bold tracking-[0.2em] text-[var(--text-primary)] uppercase whitespace-nowrap">0%</span>
+                </div>
+            </div>
+
             <div class="flex items-center gap-3 ml-6">
                 <button onclick="openSettings()" class="w-10 h-10 border border-[var(--border)] text-[var(--text-secondary)] rounded-full flex items-center justify-center active:scale-90 transition-all bg-[var(--card-bg)]">
                     <i data-lucide="settings" class="w-4 h-4"></i>
                 </button>
-                <button onclick="openStats()" class="w-10 h-10 border border-[var(--border)] text-[var(--text-secondary)] rounded-full flex items-center justify-center active:scale-90 transition-all bg-[var(--card-bg)]">
+                <button id="stats-btn" onclick="openStats()" class="w-10 h-10 border border-[var(--border)] text-[var(--text-secondary)] rounded-full flex items-center justify-center active:scale-90 transition-all bg-[var(--card-bg)]">
                     <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
                 </button>
                 <button onclick="openAddModal()" class="w-10 h-10 border border-[var(--border)] text-[var(--text-secondary)] rounded-full flex items-center justify-center active:scale-90 transition-all bg-[var(--card-bg)]">
@@ -97,9 +124,24 @@
             </div>
         </header>
 
-        <div id="habit-list" class="flex-1 overflow-y-auto pb-20 space-y-3 no-scrollbar"></div>
+        <!-- Main Content Area -->
+        <div id="habit-list" class="flex-1 overflow-y-auto pb-24 space-y-3 no-scrollbar"></div>
+        <div id="todo-list" class="hidden flex-1 overflow-y-auto pb-24 space-y-3 no-scrollbar"></div>
+
+        <!-- Navigation Bar -->
+        <nav class="fixed bottom-0 left-0 right-0 bg-[var(--bg-primary)] border-t border-[var(--border)] py-4 px-10 flex justify-around items-center z-[50]">
+            <button onclick="switchView('habits')" id="nav-habits" class="nav-item active flex flex-col items-center gap-1">
+                <i data-lucide="rotate-cw" class="w-5 h-5"></i>
+                <span class="text-[8px] uppercase tracking-widest">Habits</span>
+            </button>
+            <button onclick="switchView('todos')" id="nav-todos" class="nav-item flex flex-col items-center gap-1">
+                <i data-lucide="check-square" class="w-5 h-5"></i>
+                <span class="text-[8px] uppercase tracking-widest">To-Do</span>
+            </button>
+        </nav>
     </div>
 
+    <!-- Modals -->
     <div id="settings-modal" class="hidden absolute inset-0 bg-[var(--bg-primary)] z-[150] flex flex-col animate-slide-up">
         <header class="p-6 flex justify-between items-center border-b border-[var(--border)] shrink-0">
             <h2 class="text-lg font-light tracking-widest text-[var(--text-secondary)] uppercase">Settings</h2>
@@ -110,18 +152,14 @@
         <div class="p-6 space-y-8">
             <div class="flex justify-between items-center">
                 <span class="text-sm text-[var(--text-primary)]">Dark Mode</span>
-                <button onclick="toggleTheme()" id="theme-toggle-btn" class="px-4 py-2 border border-[var(--border)] rounded-full text-[10px] font-bold uppercase tracking-widest bg-[var(--card-bg)]">Toggle</button>
+                <button onclick="toggleTheme()" class="px-4 py-2 border border-[var(--border)] rounded-full text-[10px] font-bold uppercase tracking-widest bg-[var(--card-bg)]">Toggle</button>
             </div>
             <div class="flex justify-between items-center">
                 <div>
-                    <span class="text-sm text-[var(--text-primary)] block">Reset Hour</span>
-                    <span class="text-[10px] text-[var(--text-secondary)] uppercase">When habits clear for the day</span>
+                    <span class="text-sm text-[var(--text-primary)] block">Reset Time</span>
+                    <span class="text-[10px] text-[var(--text-secondary)] uppercase">When items clear for the day</span>
                 </div>
-                <select id="reset-hour-select" onchange="updateResetHour()" class="bg-transparent border-b border-[var(--border)] text-sm focus:outline-none text-[var(--text-primary)]">
-                    </select>
-            </div>
-            <div class="pt-4">
-                <p class="text-[9px] text-[var(--text-secondary)] uppercase tracking-tighter">Timezone: <span id="timezone-display" class="font-bold"></span></p>
+                <input type="time" id="reset-time-input" onchange="updateResetHour()" class="bg-transparent border border-[var(--border)] rounded-lg p-2 text-sm focus:outline-none text-[var(--text-primary)]">
             </div>
         </div>
     </div>
@@ -131,9 +169,10 @@
             <i data-lucide="x" class="w-6 h-6"></i>
         </button>
         <div class="w-full max-w-sm text-center">
-            <input id="habit-input" type="text" placeholder="New Habit..." class="w-full bg-transparent border-b border-[var(--border)] py-4 text-2xl font-light focus:outline-none focus:border-[var(--text-primary)] text-center text-[var(--text-primary)]">
+            <h3 id="modal-title" class="text-[10px] font-bold uppercase tracking-[0.3em] mb-4 text-[var(--text-secondary)]">New Item</h3>
+            <input id="item-input" type="text" placeholder="..." class="w-full bg-transparent border-b border-[var(--border)] py-4 text-2xl font-light focus:outline-none focus:border-[var(--text-primary)] text-center text-[var(--text-primary)]">
             <div class="mt-10 flex justify-center">
-                <button onclick="addHabit()" class="w-16 h-16 border border-[var(--border)] rounded-full flex items-center justify-center text-[var(--text-primary)] active:bg-neutral-200 dark:active:bg-neutral-900 transition-colors">
+                <button onclick="addItem()" class="w-16 h-16 border border-[var(--border)] rounded-full flex items-center justify-center text-[var(--text-primary)] active:bg-neutral-200 dark:active:bg-neutral-900 transition-colors">
                     <i data-lucide="check" class="w-7 h-7"></i>
                 </button>
             </div>
@@ -169,21 +208,22 @@
                 <p id="avg-consistency" class="text-2xl font-light mb-8 text-[var(--text-primary)]">0% <span class="text-xs text-[var(--text-secondary)] ml-1">avg</span></p>
                 <div id="bar-chart" class="h-32 flex items-end gap-1.5 px-1"></div>
             </div>
-            <div class="space-y-8 pb-10">
-                <h3 class="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">Habit Logs</h3>
-                <div id="habit-logs" class="space-y-10"></div>
-            </div>
+            <div id="habit-logs" class="space-y-10 pb-10"></div>
         </div>
     </div>
 
     <script>
         let habits = JSON.parse(localStorage.getItem('habits')) || [];
+        let todos = JSON.parse(localStorage.getItem('todos')) || [];
         let resetHour = parseInt(localStorage.getItem('resetHour')) || 0;
+        let resetMinute = parseInt(localStorage.getItem('resetMinute')) || 0;
+        let currentView = 'habits';
 
         function getAdjustedToday() {
             const now = new Date();
-            // If current hour is less than reset hour, it's technically "yesterday" for habits
-            if (now.getHours() < resetHour) {
+            const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
+            const resetTotalMinutes = resetHour * 60 + resetMinute;
+            if (currentTotalMinutes < resetTotalMinutes) {
                 now.setDate(now.getDate() - 1);
             }
             return now.toISOString().split('T')[0];
@@ -203,62 +243,105 @@
             applyTheme();
         }
 
-        function openSettings() { 
-            document.getElementById('timezone-display').innerText = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            document.getElementById('settings-modal').classList.remove('hidden'); 
-        }
-        function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
-        
-        function updateResetHour() {
-            resetHour = parseInt(document.getElementById('reset-hour-select').value);
-            localStorage.setItem('resetHour', resetHour);
-            today = getAdjustedToday();
+        function switchView(view) {
+            currentView = view;
+            const habitList = document.getElementById('habit-list');
+            const todoList = document.getElementById('todo-list');
+            const headerHabits = document.getElementById('header-habits');
+            const headerTodos = document.getElementById('header-todos');
+            const statsBtn = document.getElementById('stats-btn');
+            
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
+            if (view === 'habits') {
+                habitList.classList.remove('hidden');
+                todoList.classList.add('hidden');
+                headerHabits.classList.remove('hidden');
+                headerTodos.classList.add('hidden');
+                statsBtn.classList.remove('hidden');
+                document.getElementById('nav-habits').classList.add('active');
+            } else {
+                habitList.classList.add('hidden');
+                todoList.classList.remove('hidden');
+                headerHabits.classList.add('hidden');
+                headerTodos.classList.remove('hidden');
+                statsBtn.classList.add('hidden');
+                document.getElementById('nav-todos').classList.add('active');
+            }
             render();
         }
 
-        function initSettings() {
-            const select = document.getElementById('reset-hour-select');
-            for(let i=0; i<24; i++) {
-                const opt = document.createElement('option');
-                opt.value = i;
-                opt.text = `${i}:00`;
-                if(i === resetHour) opt.selected = true;
-                select.appendChild(opt);
+        function openSettings() { 
+            const timeInput = document.getElementById('reset-time-input');
+            timeInput.value = `${String(resetHour).padStart(2, '0')}:${String(resetMinute).padStart(2, '0')}`;
+            document.getElementById('settings-modal').classList.remove('hidden'); 
+        }
+
+        function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
+        
+        function updateResetHour() {
+            const timeVal = document.getElementById('reset-time-input').value;
+            if (timeVal) {
+                const [h, m] = timeVal.split(':').map(Number);
+                resetHour = h;
+                resetMinute = m;
+                localStorage.setItem('resetHour', resetHour);
+                localStorage.setItem('resetMinute', resetMinute);
+                today = getAdjustedToday();
+                render();
             }
         }
 
         function save() {
             localStorage.setItem('habits', JSON.stringify(habits));
+            localStorage.setItem('todos', JSON.stringify(todos));
             render();
         }
 
-        function openAddModal() { document.getElementById('add-modal').classList.remove('hidden'); }
+        function openAddModal() { 
+            const input = document.getElementById('item-input');
+            const title = document.getElementById('modal-title');
+            input.placeholder = currentView === 'habits' ? "New Habit..." : "New Task...";
+            title.innerText = currentView === 'habits' ? "New Habit" : "New Task";
+            document.getElementById('add-modal').classList.remove('hidden'); 
+            input.focus();
+        }
         function closeAddModal() { document.getElementById('add-modal').classList.add('hidden'); }
         function openStats() { calculateStats(); document.getElementById('stats-view').classList.remove('hidden'); }
         function closeStats() { document.getElementById('stats-view').classList.add('hidden'); }
 
-        function addHabit() {
-            const input = document.getElementById('habit-input');
-            if (!input.value.trim()) return;
-            habits.push({ id: Date.now(), name: input.value.trim(), completedDates: [] });
+        function addItem() {
+            const input = document.getElementById('item-input');
+            const name = input.value.trim();
+            if (!name) return;
+            if (currentView === 'habits') {
+                habits.push({ id: Date.now(), name, completedDates: [] });
+            } else {
+                todos.push({ id: Date.now(), name, completedDates: [] });
+            }
             input.value = '';
             closeAddModal();
             save();
         }
 
-        function toggleHabit(id) {
+        function toggleItem(id, listType) {
             today = getAdjustedToday();
-            const habit = habits.find(h => h.id === id);
-            if (habit.completedDates.includes(today)) {
-                habit.completedDates = habit.completedDates.filter(d => d !== today);
+            const list = listType === 'habits' ? habits : todos;
+            const item = list.find(h => h.id === id);
+            if (item.completedDates.includes(today)) {
+                item.completedDates = item.completedDates.filter(d => d !== today);
             } else {
-                habit.completedDates.push(today);
+                item.completedDates.push(today);
             }
             save();
         }
 
-        function deleteHabit(id) {
-            habits = habits.filter(h => h.id !== id);
+        function deleteItem(id, listType) {
+            if (listType === 'habits') {
+                habits = habits.filter(h => h.id !== id);
+            } else {
+                todos = todos.filter(t => t.id !== id);
+            }
             save();
         }
 
@@ -275,10 +358,9 @@
                 } else curr = 1;
                 if (curr > best) best = curr;
             }
-            const sortedDesc = [...sorted].reverse();
             let current = 0;
             let checkDate = new Date(getAdjustedToday());
-            if (!sortedDesc.includes(getAdjustedToday())) checkDate.setDate(checkDate.getDate() - 1);
+            if (!dates.includes(getAdjustedToday())) checkDate.setDate(checkDate.getDate() - 1);
             while (true) {
                 const str = checkDate.toISOString().split('T')[0];
                 if (dates.includes(str)) {
@@ -287,6 +369,119 @@
                 } else break;
             }
             return { current, best: Math.max(best, current) };
+        }
+
+        function render() {
+            today = getAdjustedToday();
+            
+            // Render Habit List & Progress
+            renderList('habit-list', habits, 'habits');
+            const completedHabits = habits.filter(h => h.completedDates.includes(today)).length;
+            const habitPerc = habits.length ? Math.round((completedHabits / habits.length) * 100) : 0;
+            document.getElementById('habit-progress-bar').style.width = `${habitPerc}%`;
+            document.getElementById('habit-progress-text').innerText = `${habitPerc}%`;
+
+            // Render Todo List & Progress
+            renderList('todo-list', todos, 'todos');
+            const completedTodos = todos.filter(t => t.completedDates.includes(today)).length;
+            const todoPerc = todos.length ? Math.round((completedTodos / todos.length) * 100) : 0;
+            document.getElementById('todo-progress-bar').style.width = `${todoPerc}%`;
+            document.getElementById('todo-progress-text').innerText = `${todoPerc}%`;
+
+            lucide.createIcons();
+        }
+
+        function renderList(containerId, data, type) {
+            const list = document.getElementById(containerId);
+            list.innerHTML = '';
+            const sorted = [...data].sort((a, b) => {
+                const aDone = a.completedDates.includes(today);
+                const bDone = b.completedDates.includes(today);
+                return aDone === bDone ? 0 : aDone ? 1 : -1;
+            });
+            sorted.forEach(item => {
+                const isDone = item.completedDates.includes(today);
+                const { current: streak } = type === 'habits' ? calculateStreaks(item.completedDates) : { current: 0 };
+                const div = document.createElement('div');
+                div.className = 'item-card flex items-center gap-4 p-4 rounded-xl active:scale-[0.98] transition-all';
+                div.innerHTML = `
+                    <button onclick="toggleItem(${item.id}, '${type}')" class="w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${isDone ? 'bg-[var(--text-primary)] border-[var(--text-primary)]' : 'border-[var(--border)]'}">
+                        ${isDone ? '<i data-lucide="check" class="w-4 h-4 text-[var(--bg-primary)]"></i>' : ''}
+                    </button>
+                    <div class="flex-1 min-w-0" onclick="toggleItem(${item.id}, '${type}')">
+                        <p class="text-base font-medium truncate ${isDone ? 'text-neutral-400 line-through' : 'text-[var(--text-primary)]'}">
+                            ${item.name}
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        ${(type === 'habits' && streak > 0) ? `
+                        <div class="flex items-center gap-1 text-orange-600">
+                            <i data-lucide="zap" class="w-3 h-3 fill-current"></i>
+                            <span class="text-xs font-bold">${streak}</span>
+                        </div>` : ''}
+                        <button onclick="deleteItem(${item.id}, '${type}')" class="text-neutral-400 hover:text-red-500 transition-colors p-2 -mr-2">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>`;
+                list.appendChild(div);
+            });
+        }
+
+        function calculateStats() {
+            const totalHits = habits.reduce((acc, h) => acc + h.completedDates.length, 0);
+            document.getElementById('stat-total-hits').innerText = totalHits;
+            let maxBest = 0;
+            habits.forEach(h => {
+                const { best } = calculateStreaks(h.completedDates);
+                if (best > maxBest) maxBest = best;
+            });
+            document.getElementById('stat-best-streak').innerText = `${maxBest}d`;
+            
+            const chart = document.getElementById('bar-chart');
+            chart.innerHTML = '';
+            let totalPerc = 0;
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(getAdjustedToday());
+                d.setDate(d.getDate() - i);
+                const ds = d.toISOString().split('T')[0];
+                const count = habits.filter(h => h.completedDates.includes(ds)).length;
+                const perc = habits.length ? (count / habits.length) * 100 : 0;
+                totalPerc += perc;
+                const dayLabel = d.toLocaleDateString('en-US', { weekday: 'narrow' });
+                chart.innerHTML += `
+                    <div class="flex-1 flex flex-col items-center gap-2 h-full">
+                        <div class="w-full relative flex-1 flex items-end">
+                            <div class="w-full rounded-full transition-all duration-700 origin-bottom" style="height: ${Math.max(4, perc)}%; background-color: ${perc > 0 ? 'var(--text-primary)' : 'var(--grid-empty)'}"></div>
+                        </div>
+                        <span class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">${dayLabel}</span>
+                    </div>`;
+            }
+            document.getElementById('avg-consistency').innerHTML = `${Math.round(totalPerc / 7)}% <span class="text-xs text-[var(--text-secondary)] ml-1">avg</span>`;
+            
+            const logsContainer = document.getElementById('habit-logs');
+            logsContainer.innerHTML = '<h3 class="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-6">Habit Logs</h3>';
+            habits.forEach(habit => {
+                const { current, best } = calculateStreaks(habit.completedDates);
+                const habitDiv = document.createElement('div');
+                habitDiv.className = 'space-y-4 mb-10';
+                habitDiv.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-medium text-[var(--text-primary)]">${habit.name}</span>
+                        <div class="flex gap-4">
+                            <div class="flex items-center gap-1 text-orange-600">
+                                <i data-lucide="zap" class="w-3 h-3 fill-current"></i>
+                                <span class="text-xs font-bold">${current}</span>
+                            </div>
+                            <div class="flex items-center gap-1 text-yellow-600">
+                                <i data-lucide="trophy" class="w-3 h-3"></i>
+                                <span class="text-xs font-bold">${best}</span>
+                            </div>
+                        </div>
+                    </div>
+                    ${generateMiniGrid(habit.completedDates)}`;
+                logsContainer.appendChild(habitDiv);
+            });
+            lucide.createIcons();
         }
 
         function generateMiniGrid(completedDates) {
@@ -313,76 +508,10 @@
             return html;
         }
 
-        function calculateStats() {
-            const totalHits = habits.reduce((acc, h) => acc + h.completedDates.length, 0);
-            document.getElementById('stat-total-hits').innerText = totalHits;
-            let maxBest = 0;
-            habits.forEach(h => {
-                const { best } = calculateStreaks(h.completedDates);
-                if (best > maxBest) maxBest = best;
-            });
-            document.getElementById('stat-best-streak').innerText = `${maxBest}d`;
-            const chart = document.getElementById('bar-chart');
-            chart.innerHTML = '';
-            let totalPerc = 0;
-            for (let i = 6; i >= 0; i--) {
-                const d = new Date(getAdjustedToday());
-                d.setDate(d.getDate() - i);
-                const ds = d.toISOString().split('T')[0];
-                const count = habits.filter(h => h.completedDates.includes(ds)).length;
-                const perc = habits.length ? (count / habits.length) * 100 : 0;
-                totalPerc += perc;
-                const dayLabel = d.toLocaleDateString('en-US', { weekday: 'narrow' });
-                chart.innerHTML += `<div class="flex-1 flex flex-col items-center gap-2 h-full"><div class="w-full relative flex-1 flex items-end"><div class="w-full rounded-full transition-all duration-700 origin-bottom" style="height: ${Math.max(4, perc)}%; background-color: ${perc > 0 ? 'var(--text-primary)' : 'var(--grid-empty)'}"></div></div><span class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">${dayLabel}</span></div>`;
-            }
-            document.getElementById('avg-consistency').innerHTML = `${Math.round(totalPerc / 7)}% <span class="text-xs text-[var(--text-secondary)] ml-1">avg</span>`;
-            const logsContainer = document.getElementById('habit-logs');
-            logsContainer.innerHTML = '';
-            habits.forEach(habit => {
-                const { current, best } = calculateStreaks(habit.completedDates);
-                const habitDiv = document.createElement('div');
-                habitDiv.className = 'space-y-4';
-                habitDiv.innerHTML = `<div class="flex justify-between items-center"><span class="text-sm font-medium text-[var(--text-primary)]">${habit.name}</span><div class="flex gap-4"><div class="flex items-center gap-1 text-orange-600"><i data-lucide="zap" class="w-3 h-3 fill-current"></i><span class="text-xs font-bold">${current}</span></div><div class="flex items-center gap-1 text-yellow-600"><i data-lucide="trophy" class="w-3 h-3"></i><span class="text-xs font-bold">${best}</span></div></div></div>${generateMiniGrid(habit.completedDates)}`;
-                logsContainer.appendChild(habitDiv);
-            });
-            lucide.createIcons();
-        }
-
-        function render() {
-            today = getAdjustedToday();
-            const list = document.getElementById('habit-list');
-            list.innerHTML = '';
-            const completedToday = habits.filter(h => h.completedDates.includes(today)).length;
-            const progress = habits.length ? Math.round((completedToday / habits.length) * 100) : 0;
-            document.getElementById('progress-bar').style.width = `${progress}%`;
-            document.getElementById('progress-text').innerText = `${progress}%`;
-            habits.forEach(habit => {
-                const isDone = habit.completedDates.includes(today);
-                const { current: streak } = calculateStreaks(habit.completedDates);
-                const div = document.createElement('div');
-                div.className = 'habit-card flex items-center gap-4 p-4 rounded-xl active:scale-[0.98] transition-all';
-                div.innerHTML = `<button onclick="toggleHabit(${habit.id})" class="w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${isDone ? 'bg-[var(--text-primary)] border-[var(--text-primary)]' : 'border-[var(--border)]'}">${isDone ? '<i data-lucide="check" class="w-4 h-4 text-[var(--bg-primary)]"></i>' : ''}</button><div class="flex-1 min-w-0" onclick="toggleHabit(${habit.id})"><p class="text-base font-medium truncate ${isDone ? 'text-neutral-400 line-through' : 'text-[var(--text-primary)]'}">${habit.name}</p></div><div class="flex items-center gap-3">${streak > 0 ? `<div class="flex items-center gap-1 text-orange-600"><i data-lucide="zap" class="w-3 h-3 fill-current"></i><span class="text-xs font-bold">${streak}</span></div>` : ''}<button onclick="deleteHabit(${habit.id})" class="text-neutral-400 hover:text-red-500 transition-colors p-2 -mr-2"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`;
-                list.appendChild(div);
-            });
-            lucide.createIcons();
-        }
-
-        if (!localStorage.getItem('theme')) {
-            const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            localStorage.setItem('theme', systemDark ? 'dark' : 'light');
-        }
         applyTheme();
-        initSettings();
         render();
-
-        // Check for day transition every minute
-        setInterval(() => {
-            const currentToday = getAdjustedToday();
-            if (currentToday !== today) {
-                today = currentToday;
-                render();
-            }
-        }, 60000);
+        setInterval(render, 30000);
     </script>
 </body>
 </html>
+
